@@ -15,12 +15,40 @@ if ! id | grep libvirtd; then
    PRINT_RESTART=1
 fi
 
-# packages
-sudo apt-get update
-DEBIAN_FRONTEND=noninteractive sudo apt-get install --yes python-lxml python-libvirt libvirt-bin qemu-system qemu-kvm git python-pip
-sudo pip install -U python-novaclient python-glanceclient
+os=unsupported
+if `grep -Eqs 'Red Hat Enterprise Linux Server release 6|CentOS release 6' /etc/redhat-release`; then
+  os=el6
+fi
 
-sudo service libvirt-bin restart
+if [ -f /etc/debian_version ]; then
+  os=debian
+fi
+
+if [ "$os" = "unsupported" ]; then
+  echo This script has not been tested outside of EL6 and Ubuntu variants.
+  echo
+  echo Press Control-C to quit, or ENTER to continue at your own risk.
+  read waiting
+fi
+
+if [ "$os" = "debian" ]; then
+  # packages
+  sudo apt-get update
+  DEBIAN_FRONTEND=noninteractive sudo apt-get install --yes python-lxml python-libvirt libvirt-bin qemu-system qemu-kvm git python-pip
+  sudo pip install -U python-novaclient python-glanceclient
+
+  sudo service libvirt-bin restart
+fi
+
+if [ "$os" = "el6" ]; then
+  sudo yum update
+  sudo yum install -y python-lxml libvirt-python libvirt qemu-kvm git python-pip openssl-devel python-devel
+  sudo yum groupinstall -y "Development tools"
+  
+  sudo pip-python install -U python-novaclient python-glanceclient
+
+  sudo service libvirtd restart
+fi
 
 echo "Check to see that you are in the libvirtd group in your current shell before going on. You can check by running:"
 echo
